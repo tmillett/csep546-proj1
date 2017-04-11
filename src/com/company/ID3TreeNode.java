@@ -18,7 +18,7 @@ public class ID3TreeNode {
 
     private ID3TreeNode parent;
     private Attribute attribute;
-    private Map<Double, Object> children;
+    private Map<Double, ID3TreeNode> children;
 
     public ID3TreeNode(ID3TreeNode parent) {
         this.parent = parent;
@@ -33,15 +33,11 @@ public class ID3TreeNode {
         this.children.put(attributeValue, node);
     }
 
-    public void setClassAttributeValueForAttributeValue(double attributeValue, double classAttrValue) {
-        this.children.put(attributeValue, classAttrValue);
-    }
-
     public Attribute getAttribute() {
         return this.attribute;
     }
 
-    public Map<Double, Object> getChildren() {
+    public Map<Double, ID3TreeNode> getChildren() {
         return this.children;
     }
 
@@ -169,64 +165,53 @@ public class ID3TreeNode {
                 childNode.train(subInstances);
             } else {
                 Double existingClassValue = subInstancesClassValueMap.get(attrValue);
-                this.setClassAttributeValueForAttributeValue(attrValue, existingClassValue);
+
+                ID3TreeLeaf leafNode = new ID3TreeLeaf(this);
+
+                leafNode.setClassValueForAttributeValue(attrValue, existingClassValue);
+                this.setChildForAttributeValue(attrValue, leafNode);
             }
         }
-
-        System.out.print("");
     }
 
-////    public String print() {
-////        StringBuilder builder = new StringBuilder();
-////        return this.internalPrint(builder, "");
-////    }
-////
-////    private String internalPrint(StringBuilder builder, String tabs) {
-////
-////        builder.append("\n" + tabs + this.attribute);
-////        List<Object> children = new ArrayList<>();
-////        for (Double attrValue: this.children.keySet()) {
-////            Object obj = this.children.get(attrValue);
-////            if (obj.getClass() == Double.class) {
-////                builder.append("\n" + tabs + attrValue + "~> " + obj);
-////            } else {
-////               children.add(obj);
-////            }
-////        }
-////
-////        for (Object obj: children) {
-////            ID3TreeNode node = (ID3TreeNode) obj;
-////
-////            node.internalPrint(builder, tabs + "\t");
-////        }
-////
-////        return
-////    }
-//
-//    public void print() {
-//        print("", true);
-//    }
-//
-//    private void print(String prefix, boolean isTail) {
-//        System.out.println(prefix + (isTail ? "└── " : "├── ") + this.attribute);
-//
-//        List<Object> leafs = new ArrayList<>();
-//        List<Object> nodes = new ArrayList<>();
-//        for (Double attrValue: this.children.keySet()) {
-//            Object obj = this.children.get(attrValue);
-//            if (obj.getClass() == Double.class) {
-//                leafs.add(obj);
-//            } else {
-//               nodes.add(obj);
-//            }
-//        }
-//
-//        for (int i = 0; i < leafs.size() - 1; i++) {
-//            leafs.get(i).print(prefix + (isTail ? "    " : "│   "), false);
-//        }
-//        if (children.size() > 0) {
-//            children.get(children.size() - 1)
-//                    .print(prefix + (isTail ?"    " : "│   "), true);
-//        }
-//    }
+    public void print() {
+        print("", true);
+    }
+
+    private void print(String prefix, boolean isTail) {
+        printThis(prefix, isTail);
+        List<ID3TreeNode> children = new ArrayList<>();
+        for (Double attrValue : this.children.keySet()) {
+            children.add(this.children.get(attrValue));
+        }
+        for (int i = 0; i < children.size() - 1; i++) {
+            children.get(i).print(prefix + (isTail ? "    " : "│   "), false);
+        }
+        if (children.size() > 0) {
+            children.get(children.size() - 1)
+                    .print(prefix + (isTail ?"    " : "│   "), true);
+        }
+    }
+
+    public void printThis(String prefix, boolean isTail) {
+        System.out.println(prefix + (isTail ? "└── " : "├── ") + attribute);
+    }
+}
+
+class ID3TreeLeaf extends ID3TreeNode {
+
+    private Double attributeValue;
+    private Double classValueForAttributeValue;
+    public ID3TreeLeaf(ID3TreeNode parent) {
+        super(parent);
+    }
+
+    public void setClassValueForAttributeValue(Double attrValue, Double classValueForAttributeValue) {
+        this.attributeValue = attrValue;
+        this.classValueForAttributeValue = classValueForAttributeValue;
+    }
+
+    public void printThis(String prefix, boolean isTail) {
+        System.out.println(prefix + (isTail ? "└── " : "├── ") + this.attributeValue + " ~> " + this.classValueForAttributeValue);
+    }
 }

@@ -12,7 +12,8 @@ public class Main {
             Instances data = getInstances();
             ID3TreeNode tree = new ID3TreeNode(null);
             tree.train(data);
-            //tree.print();
+            System.out.println(data.attribute(data.classIndex()));
+            tree.print();
 
         } catch (Exception e) {
             e.printStackTrace();
