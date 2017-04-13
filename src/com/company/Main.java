@@ -59,6 +59,9 @@ public class Main {
             }
             for (int j = 0; j < instance.numValues(); j++) {
                 if (j == instance.classIndex()) continue;
+                if (instance.isMissing(j)) {
+                    continue;
+                }
                 Attribute attr = instance.attribute(j);
                 Double attrValue = instance.value(j);
                 Map<Double, Integer> countsForSpecificAttribute = countsForEachAttribute.get(attr);
