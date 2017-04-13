@@ -16,6 +16,7 @@ public class Main {
 
             Instances data = getInstances();
             Map<Double, Map<Attribute, Double>> highestAttribueValueCounts = findHighestAttributeValueCounts(data);
+            replaceMissingValues(data, highestAttribueValueCounts);
             ID3TreeNode tree = new ID3TreeNode(null);
             tree.train(data);
             System.out.println(data.attribute(data.classIndex()));
@@ -25,6 +26,25 @@ public class Main {
             e.printStackTrace();
         }
 
+    }
+
+    private static void replaceMissingValues(Instances data, Map<Double, Map<Attribute, Double>> highestAttributeValueCounts) {
+        for (int i = 0; i < data.size(); i++) {
+            Instance instance = data.get(i);
+            Double classValue = instance.classValue();
+            for (int j = 0; j < instance.numValues(); j++) {
+                if (j == instance.classIndex()) continue;
+
+                Attribute attr = instance.attribute(j);
+                Double attrValue = instance.value(j);
+
+                if (instance.isMissing(j) || attr.value(attrValue.intValue()).equals("NULL")) {
+                    Map<Attribute, Double> countsForSpecificAttribute = highestAttributeValueCounts.get(classValue);
+                    Double replacementAttrValue = countsForSpecificAttribute.get(attr);
+                    instance.setValue(attr,replacementAttrValue);
+                }
+            }
+        }
     }
 
     private static Instances getInstances() throws Exception {
@@ -64,6 +84,9 @@ public class Main {
                 }
                 Attribute attr = instance.attribute(j);
                 Double attrValue = instance.value(j);
+                if (attr.value(attrValue.intValue()).equals("NULL")) {
+                    continue;
+                }
                 Map<Double, Integer> countsForSpecificAttribute = countsForEachAttribute.get(attr);
                 if (countsForSpecificAttribute == null) {
                     countsForSpecificAttribute = new HashMap<>();
@@ -80,7 +103,7 @@ public class Main {
 
         // {classValue1 -> {attribute1 -> attributeValue1, attribute2 -> attributeValue2},
         //  classValue2 -> {attribute1 -> attributeValue1, attribute2 -> attributeValue2}}
-        Map<Double, Map<Attribute, Double>> highestAttribueValueCounts = new HashMap<>();
+        Map<Double, Map<Attribute, Double>> highestAttributeValueCounts = new HashMap<>();
 
         for (Double classValue: countsForEachAttributePerClassValue.keySet()) {
             Map<Attribute, Map<Double, Integer>> countsForEachAttribute = countsForEachAttributePerClassValue.get(classValue);
@@ -96,16 +119,16 @@ public class Main {
                     }
                 }
 
-                Map<Attribute, Double> highestAttribueCountForSpecificAttribute = highestAttribueValueCounts.get(classValue);
+                Map<Attribute, Double> highestAttribueCountForSpecificAttribute = highestAttributeValueCounts.get(classValue);
                 if (highestAttribueCountForSpecificAttribute == null) {
                     highestAttribueCountForSpecificAttribute = new HashMap<>();
-                    highestAttribueValueCounts.put(classValue, highestAttribueCountForSpecificAttribute);
+                    highestAttributeValueCounts.put(classValue, highestAttribueCountForSpecificAttribute);
                 }
                 highestAttribueCountForSpecificAttribute.put(attr, highestAttrCountValue);
             }
         }
 
-        return highestAttribueValueCounts;
+        return highestAttributeValueCounts;
     }
 
 }
