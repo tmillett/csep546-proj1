@@ -103,12 +103,12 @@ public class ID3TreeNode {
                     }
                 }
 
-                Map<Attribute, Double> highestAttribueCountForSpecificAttribute = highestAttributeValueCounts.get(classValue);
-                if (highestAttribueCountForSpecificAttribute == null) {
-                    highestAttribueCountForSpecificAttribute = new HashMap<>();
-                    highestAttributeValueCounts.put(classValue, highestAttribueCountForSpecificAttribute);
+                Map<Attribute, Double> highestAttributeCountForSpecificAttribute = highestAttributeValueCounts.get(classValue);
+                if (highestAttributeCountForSpecificAttribute == null) {
+                    highestAttributeCountForSpecificAttribute = new HashMap<>();
+                    highestAttributeValueCounts.put(classValue, highestAttributeCountForSpecificAttribute);
                 }
-                highestAttribueCountForSpecificAttribute.put(attr, highestAttrCountValue);
+                highestAttributeCountForSpecificAttribute.put(attr, highestAttrCountValue);
             }
         }
 
@@ -160,17 +160,17 @@ public class ID3TreeNode {
     }
 
     private Attribute calculateGain(double entropy, Map<Attribute, GainInfo> instanceRowsByClass) {
-        Attribute attribueWithHighestGain = null;
+        Attribute attributeWithHighestGain = null;
         double highestGain = Double.MIN_VALUE;
         for (Attribute attr : instanceRowsByClass.keySet()) {
             double currentGain = instanceRowsByClass.get(attr).gain(entropy);
             if (currentGain > highestGain) {
-                attribueWithHighestGain = attr;
+                attributeWithHighestGain = attr;
                 highestGain = currentGain;
             }
 
         }
-        return attribueWithHighestGain;
+        return attributeWithHighestGain;
     }
 
     private Map<Attribute, GainInfo> getAttributeGainInfoMap(Instances data) {
