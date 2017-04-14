@@ -17,8 +17,9 @@ import java.util.Map;
 public class ID3TreeNode {
 
     private ID3TreeNode parent;
-    private Attribute attribute;
+    protected Attribute attribute;
     private Map<Double, ID3TreeNode> children;
+    private Map<Double, Map<Attribute, Double>> highestAttributeValueCounts;
 
     public ID3TreeNode(ID3TreeNode parent) {
         this.parent = parent;
@@ -187,13 +188,18 @@ public class ID3TreeNode {
         for (int i = 0; i < data.size(); i++) {
             Instance instance = data.instance(i);
             double classValue = instance.classValue();
-            int numClassValues = instance.classAttribute().numValues();
             for (int j = 0; j < instance.numValues(); j++) {
 
                 if (j == instance.classIndex()) continue;
 
                 Attribute attr = instance.attribute(j);
-                double attrValue = instance.value(j);
+                Double attrValue = instance.value(j);
+                if (instance.isMissing(j) || attr.value(attrValue.intValue()).equals("NULL") || Double.isNaN(attrValue.doubleValue())) {
+                    Map<Attribute, Double> countsForSpecificAttribute = highestAttributeValueCounts.get(classValue);
+                    attrValue = countsForSpecificAttribute.get(attr);
+                }
+
+
                 GainInfo classCountPerAttrType = instanceRowsByClass.get(attr);
                 if (classCountPerAttrType == null) {
                     classCountPerAttrType = new GainInfo(attr,instance.classAttribute());
@@ -208,8 +214,7 @@ public class ID3TreeNode {
 
     public void train(Instances data) {
 
-        Map<Double, Map<Attribute, Double>> highestAttributeValueCounts = this.findHighestAttributeValueCounts(data);
-        replaceMissingValues(data, highestAttributeValueCounts);
+        this.highestAttributeValueCounts = this.findHighestAttributeValueCounts(data);
 
 
         // Find the attribute to split on to figure out the most information gain
@@ -240,8 +245,13 @@ public class ID3TreeNode {
 
         for (int i = 0; i < data.size(); i++) {
             Instance instance = data.instance(i);
-            double attrValue = instance.value(root);
+            Double attrValue = instance.value(root);
             double classValue = instance.classValue();
+            if (root.value(attrValue.intValue()).equals("NULL") || Double.isNaN(attrValue.doubleValue())) {
+                Map<Attribute, Double> countsForSpecificAttribute = highestAttributeValueCounts.get(classValue);
+                attrValue = countsForSpecificAttribute.get(root);
+            }
+
 
             Instances subInstances = subInstancesMap.get(attrValue);
             if (subInstances == null) {
@@ -266,6 +276,7 @@ public class ID3TreeNode {
         // We are now ready to either grow the tree (because class values in a specific group do not match)
         // Or add a leaf node with a specific attribute value and a specific class value
         for (Double attrValue : subInstancesMap.keySet()) {
+
             Instances subInstances = subInstancesMap.get(attrValue);
             Boolean shouldGrowTree = subInstancesShouldGrowMap.get(attrValue);
             if (shouldGrowTree != null && shouldGrowTree == true) {
@@ -277,6 +288,7 @@ public class ID3TreeNode {
                 Double existingClassValue = subInstancesClassValueMap.get(attrValue);
 
                 ID3TreeLeaf leafNode = new ID3TreeLeaf(this);
+                leafNode.setAttribute(attribute);
 
                 leafNode.setClassValueForAttributeValue(attrValue, existingClassValue);
                 this.setChildForAttributeValue(attrValue, leafNode);
@@ -306,6 +318,30 @@ public class ID3TreeNode {
     public void printThis(String prefix, boolean isTail) {
         System.out.println(prefix + (isTail ? "└── " : "├── ") + attribute);
     }
+
+    public Double evaluateInstance(Instance instance) {
+
+        // Make sure the attributes match
+        String name = this.attribute.name();
+        int index = 0;
+        for (int i = 0; i < instance.numAttributes(); i++) {
+            Attribute anAttr = instance.attribute(i);
+            if (anAttr.name().equals(name)) {
+                index = i;
+                break;
+            }
+        }
+        Double attributeValue = instance.value(index);
+        ID3TreeNode node = this.children.get(attributeValue);
+        if (node == null) {
+//            int highestCount = Integer.MIN_VALUE;
+//            for (Double classValue : this.highestAttributeValueCounts.keySet()) {
+//                int count = this.highestAttributeValueCounts.get(classValue).get(attribute);
+//            }
+//            attributeValue = this.highestAttributeValueCounts
+        }
+        return node.evaluateInstance(instance);
+    }
 }
 
 class ID3TreeLeaf extends ID3TreeNode {
@@ -323,5 +359,9 @@ class ID3TreeLeaf extends ID3TreeNode {
 
     public void printThis(String prefix, boolean isTail) {
         System.out.println(prefix + (isTail ? "└── " : "├── ") + this.attributeValue + " ~> " + this.classValueForAttributeValue);
+    }
+
+    public Double evaluateInstance(Instance instance) {
+        return this.classValueForAttributeValue;
     }
 }
