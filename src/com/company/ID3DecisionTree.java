@@ -48,7 +48,7 @@ public class ID3DecisionTree {
             if (expectedClassValue.equals(actualClassValue)) {
                 numMatches++;
             } else {
-                System.out.println(instance);
+                //System.out.println(instance);
             }
         }
         double percent = (double)numMatches / (double)this.validationData.size();

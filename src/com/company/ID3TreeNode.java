@@ -1,6 +1,6 @@
 package com.company;
 
-import org.w3c.dom.Attr;
+import com.company.AttrInfo;
 import weka.core.Attribute;
 import weka.core.AttributeStats;
 import weka.core.Instance;
@@ -19,7 +19,7 @@ public class ID3TreeNode {
     private ID3TreeNode parent;
     protected Attribute attribute;
     private Map<Double, ID3TreeNode> children;
-    private Map<Double, Map<Attribute, Double>> highestAttributeValueCounts;
+    private Map<Double, Map<String, AttrInfo>> highestAttributeValueCounts;
 
     public ID3TreeNode(ID3TreeNode parent) {
         this.parent = parent;
@@ -45,12 +45,12 @@ public class ID3TreeNode {
         }
     }
 
-    protected Map<Double, Map<Attribute, Double>> findHighestAttributeValueCounts(Instances data) {
+    protected Map<Double, Map<String, AttrInfo>> findHighestAttributeValueCounts(Instances data) {
         // Loop through all instances. Find out the most common value for each attribute depending on the class value
 
         // First get the counts of each variable depending on the class value
-        // {classValue1 -> {attribute1 -> {attributeValue1 -> count, attributeValue2 -> count}, attribute2 -> {attributeValue3 -> count, attributeValue4 -> count}},
-        //  classValue2 -> {attribute1 -> {attributeValue1 -> count, attributeValue2 -> count}, attribute2 -> {attributeValue3 -> count, attributeValue4 -> count}}
+        // {classValue1 -> {attribute1Name -> {attributeValue1 -> count, attributeValue2 -> count}, attribute2Name -> {attributeValue3 -> count, attributeValue4 -> count}},
+        //  classValue2 -> {attribute1Name -> {attributeValue1 -> count, attributeValue2 -> count}, attribute2Name -> {attributeValue3 -> count, attributeValue4 -> count}}
 
         Map<Double, Map<Attribute, Map<Double, Integer>>> countsForEachAttributePerClassValue = new HashMap<>();
 
@@ -86,9 +86,9 @@ public class ID3TreeNode {
             }
         }
 
-        // {classValue1 -> {attribute1 -> attributeValue1, attribute2 -> attributeValue2},
-        //  classValue2 -> {attribute1 -> attributeValue1, attribute2 -> attributeValue2}}
-        Map<Double, Map<Attribute, Double>> highestAttributeValueCounts = new HashMap<>();
+        // {classValue1 -> {attribute1 -> (attrType, attributeValue1, count), attribute2 -> (attrType, attributeValue2, count)},
+        //  classValue2 -> {attribute1 -> (attrType, attributeValue1, count), attribute2 -> (attrType, attributeValue2, count)}}
+        Map<Double, Map<String, AttrInfo>> highestAttributeValueCounts = new HashMap<>();
 
         for (Double classValue: countsForEachAttributePerClassValue.keySet()) {
             Map<Attribute, Map<Double, Integer>> countsForEachAttribute = countsForEachAttributePerClassValue.get(classValue);
@@ -104,12 +104,16 @@ public class ID3TreeNode {
                     }
                 }
 
-                Map<Attribute, Double> highestAttributeCountForSpecificAttribute = highestAttributeValueCounts.get(classValue);
+                Map<String, AttrInfo> highestAttributeCountForSpecificAttribute = highestAttributeValueCounts.get(classValue);
                 if (highestAttributeCountForSpecificAttribute == null) {
                     highestAttributeCountForSpecificAttribute = new HashMap<>();
                     highestAttributeValueCounts.put(classValue, highestAttributeCountForSpecificAttribute);
                 }
-                highestAttributeCountForSpecificAttribute.put(attr, highestAttrCountValue);
+                AttrInfo attrInfo = new AttrInfo();
+                attrInfo.setAttribute(attr);
+                attrInfo.setCount(highestCount);
+                attrInfo.setValue(highestAttrCountValue);
+                highestAttributeCountForSpecificAttribute.put(attr.name(), attrInfo);
             }
         }
 
@@ -195,21 +199,47 @@ public class ID3TreeNode {
                 Attribute attr = instance.attribute(j);
                 Double attrValue = instance.value(j);
                 if (instance.isMissing(j) || attr.value(attrValue.intValue()).equals("NULL") || Double.isNaN(attrValue.doubleValue())) {
-                    Map<Attribute, Double> countsForSpecificAttribute = highestAttributeValueCounts.get(classValue);
-                    attrValue = countsForSpecificAttribute.get(attr);
+                    Map<String, AttrInfo> countsForSpecificAttribute = highestAttributeValueCounts.get(classValue);
+                    AttrInfo attrInfo = countsForSpecificAttribute.get(attr.name());
+                    if (attrInfo == null) {
+                        attrInfo = useBackupAttrInfo(attr);
+                    }
+                    if (attrInfo != null) {
+                        attrValue = attrInfo.getValue();
+                    } else {
+                        attr = null;
+                    }
                 }
 
+                if (attr != null) {
+                    GainInfo classCountPerAttrType = instanceRowsByClass.get(attr);
+                    if (classCountPerAttrType == null) {
+                        classCountPerAttrType = new GainInfo(attr, instance.classAttribute());
+                        instanceRowsByClass.put(attr, classCountPerAttrType);
+                    }
 
-                GainInfo classCountPerAttrType = instanceRowsByClass.get(attr);
-                if (classCountPerAttrType == null) {
-                    classCountPerAttrType = new GainInfo(attr,instance.classAttribute());
-                    instanceRowsByClass.put(attr, classCountPerAttrType);
+                    classCountPerAttrType.addInstance(attrValue, classValue);
                 }
-
-                classCountPerAttrType.addInstance(attrValue, classValue);
             }
         }
         return instanceRowsByClass;
+    }
+
+    private AttrInfo useBackupAttrInfo(Attribute attr) {
+        // If attrInfo is null here it means that for the given class value, there are NO populated values
+        // for that attribute. For now try and find an attrValue given a different class value
+
+        int highestCount = Integer.MIN_VALUE;
+        AttrInfo highestAttrInfo = null;
+        for (Double aClassValue : this.highestAttributeValueCounts.keySet()) {
+            AttrInfo anAttrInfo = this.highestAttributeValueCounts.get(aClassValue).get(attr.name());
+            if (anAttrInfo != null && highestCount < anAttrInfo.getCount()) {
+                highestCount = anAttrInfo.getCount();
+                highestAttrInfo = anAttrInfo;
+            }
+        }
+
+        return highestAttrInfo;
     }
 
     public void train(Instances data) {
@@ -248,8 +278,8 @@ public class ID3TreeNode {
             Double attrValue = instance.value(root);
             double classValue = instance.classValue();
             if (root.value(attrValue.intValue()).equals("NULL") || Double.isNaN(attrValue.doubleValue())) {
-                Map<Attribute, Double> countsForSpecificAttribute = highestAttributeValueCounts.get(classValue);
-                attrValue = countsForSpecificAttribute.get(root);
+                Map<String, AttrInfo> countsForSpecificAttribute = highestAttributeValueCounts.get(classValue);
+                attrValue = countsForSpecificAttribute.get(root.name()).getValue();
             }
 
 
@@ -334,11 +364,12 @@ public class ID3TreeNode {
         Double attributeValue = instance.value(index);
         ID3TreeNode node = this.children.get(attributeValue);
         if (node == null) {
-//            int highestCount = Integer.MIN_VALUE;
-//            for (Double classValue : this.highestAttributeValueCounts.keySet()) {
-//                int count = this.highestAttributeValueCounts.get(classValue).get(attribute);
-//            }
-//            attributeValue = this.highestAttributeValueCounts
+            AttrInfo attrInfo = useBackupAttrInfo(this.attribute);
+            if (attrInfo == null) {
+                System.out.println("uh oh");
+            }
+            attributeValue = attrInfo.getValue();
+            node = this.children.get(attributeValue);
         }
         return node.evaluateInstance(instance);
     }
