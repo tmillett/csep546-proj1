@@ -1,8 +1,5 @@
 package com.company;
 
-import weka.core.converters.ConverterUtils.DataSource;
-import weka.core.Instances;
-
 public class Main {
 
     public static void main(String[] args) {
