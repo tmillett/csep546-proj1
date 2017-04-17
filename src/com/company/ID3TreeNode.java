@@ -45,14 +45,10 @@ public class ID3TreeNode {
             }
             for (int j = 0; j < instance.numValues(); j++) {
                 if (j == instance.classIndex()) continue;
-                if (instance.isMissing(j)) {
-                    continue;
-                }
+
                 Attribute attr = instance.attribute(j);
                 Double attrValue = instance.value(j);
-                if (attr.value(attrValue.intValue()).equals("NULL")) {
-                    continue;
-                }
+                if (isMissing(instance, j, attr, attrValue)) continue;
                 Map<Double, Integer> countsForSpecificAttribute = countsForEachAttribute.get(attr);
                 if (countsForSpecificAttribute == null) {
                     countsForSpecificAttribute = new HashMap<>();
@@ -179,7 +175,7 @@ public class ID3TreeNode {
 
                 Attribute attr = instance.attribute(j);
                 Double attrValue = instance.value(j);
-                if (instance.isMissing(j) || attr.value(attrValue.intValue()).equals("NULL") || Double.isNaN(attrValue.doubleValue())) {
+                if (isMissing(instance, j, attr, attrValue)) {
                     Map<String, AttrInfo> countsForSpecificAttribute = highestAttributeValueCounts.get(classValue);
                     AttrInfo attrInfo = countsForSpecificAttribute.get(attr.name());
                     if (attrInfo == null) {
@@ -204,6 +200,14 @@ public class ID3TreeNode {
             }
         }
         return instanceRowsByClass;
+    }
+
+//    private boolean isMissing(Instance instance, int j, Attribute attr, Double attrValue) {
+//        return instance.isMissing(j) || attr.value(attrValue.intValue()).equals("NULL") || Double.isNaN(attrValue.doubleValue());
+//    }
+
+   private boolean isMissing(Instance instance, int j, Attribute attr, Double attrValue) {
+        return instance.isMissing(j) || Double.isNaN(attrValue.doubleValue());
     }
 
     private AttrInfo useBackupAttrInfo(Attribute attr) {
@@ -258,7 +262,7 @@ public class ID3TreeNode {
             Instance instance = data.instance(i);
             Double attrValue = instance.value(root);
             double classValue = instance.classValue();
-            if (root.value(attrValue.intValue()).equals("NULL") || Double.isNaN(attrValue.doubleValue())) {
+            if (isMissing(instance, attributeIndex, root, attrValue)) {
                 Map<String, AttrInfo> countsForSpecificAttribute = highestAttributeValueCounts.get(classValue);
                 attrValue = countsForSpecificAttribute.get(root.name()).getValue();
             }
