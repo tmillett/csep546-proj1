@@ -26,25 +26,6 @@ public class ID3TreeNode {
         this.children = new HashMap<>();
     }
 
-    protected void replaceMissingValues(Instances data, Map<Double, Map<Attribute, Double>> highestAttributeValueCounts) {
-        for (int i = 0; i < data.size(); i++) {
-            Instance instance = data.get(i);
-            Double classValue = instance.classValue();
-            for (int j = 0; j < instance.numValues(); j++) {
-                if (j == instance.classIndex()) continue;
-
-                Attribute attr = instance.attribute(j);
-                Double attrValue = instance.value(j);
-
-                if (instance.isMissing(j) || attr.value(attrValue.intValue()).equals("NULL")) {
-                    Map<Attribute, Double> countsForSpecificAttribute = highestAttributeValueCounts.get(classValue);
-                    Double replacementAttrValue = countsForSpecificAttribute.get(attr);
-                    instance.setValue(attr,replacementAttrValue);
-                }
-            }
-        }
-    }
-
     protected Map<Double, Map<String, AttrInfo>> findHighestAttributeValueCounts(Instances data) {
         // Loop through all instances. Find out the most common value for each attribute depending on the class value
 
