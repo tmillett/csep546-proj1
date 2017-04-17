@@ -202,13 +202,13 @@ public class ID3TreeNode {
         return instanceRowsByClass;
     }
 
-//    private boolean isMissing(Instance instance, int j, Attribute attr, Double attrValue) {
-//        return instance.isMissing(j) || attr.value(attrValue.intValue()).equals("NULL") || Double.isNaN(attrValue.doubleValue());
-//    }
-
-   private boolean isMissing(Instance instance, int j, Attribute attr, Double attrValue) {
-        return instance.isMissing(j) || Double.isNaN(attrValue.doubleValue());
+    private boolean isMissing(Instance instance, int j, Attribute attr, Double attrValue) {
+        return instance.isMissing(j) || attr.value(attrValue.intValue()).equals("NULL") || Double.isNaN(attrValue.doubleValue());
     }
+
+//   private boolean isMissing(Instance instance, int j, Attribute attr, Double attrValue) {
+//        return instance.isMissing(j) || Double.isNaN(attrValue.doubleValue());
+//    }
 
     private AttrInfo useBackupAttrInfo(Attribute attr) {
         // If attrInfo is null here it means that for the given class value, there are NO populated values
