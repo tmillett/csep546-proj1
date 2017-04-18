@@ -101,7 +101,7 @@ public class ID3TreeNode {
         this.attribute = attribute;
     }
 
-    public void setChildForAttributeValue(double attributeValue, ID3TreeNode node) {
+    public void setChildForAttributeValue(Double attributeValue, ID3TreeNode node) {
         this.children.put(attributeValue, node);
     }
 
@@ -308,14 +308,30 @@ public class ID3TreeNode {
                     Double existingClassValue = subInstancesClassValueMap.get(attrValue);
 
                     ID3TreeLeaf leafNode = new ID3TreeLeaf(this);
-                    leafNode.setAttribute(attribute);
+                    leafNode.setAttribute(this.attribute);
 
                     leafNode.setClassValueForAttributeValue(attrValue, existingClassValue);
                     this.setChildForAttributeValue(attrValue, leafNode);
                 }
             }
         } else {
-            // Make this node into a leaf and collapse the classValue into one
+            Map<Double, Integer> counts = new HashMap<>();
+            countNumOutcomes(data, counts);
+            Integer highestCount = Integer.MIN_VALUE;
+            Double highestClassValue = null;
+            for (Double classValue : counts.keySet()) {
+                Integer count = counts.get(classValue);
+                if (count > highestCount) {
+                    highestCount = count;
+                    highestClassValue = classValue;
+                }
+            }
+
+            ID3TreeLeaf leafNode = new ID3TreeLeaf(this);
+            leafNode.setAttribute(this.attribute);
+
+            leafNode.setClassValueForAttributeValue(0.0, highestClassValue);
+            this.setChildForAttributeValue(0.0, leafNode);
         }
 
 
