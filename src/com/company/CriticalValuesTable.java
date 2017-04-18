@@ -5,7 +5,7 @@ package com.company;
  */
 public class CriticalValuesTable {
 
-    private double[][] criticalValues;
+    private static double[][] criticalValues;
 
     public CriticalValuesTable () {
         this.criticalValues = new double[][]{

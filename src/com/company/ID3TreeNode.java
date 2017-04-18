@@ -286,28 +286,104 @@ public class ID3TreeNode {
             }
         }
 
-        // We have a chosen an attribute type and sorted the instances by the possible attribute values
-        // We have discovered if all the class values for a given attribute value match
-        // We are now ready to either grow the tree (because class values in a specific group do not match)
-        // Or add a leaf node with a specific attribute value and a specific class value
-        for (Double attrValue : subInstancesMap.keySet()) {
+        Boolean isSignificant = isBranchStatisticallySignificant(data, root, subInstancesMap);
 
-            Instances subInstances = subInstancesMap.get(attrValue);
-            Boolean shouldGrowTree = subInstancesShouldGrowMap.get(attrValue);
-            if (shouldGrowTree != null && shouldGrowTree == true) {
-                subInstances.deleteAttributeAt(attributeIndex);
-                ID3TreeNode childNode = new ID3TreeNode(this);
-                this.setChildForAttributeValue(attrValue, childNode);
-                childNode.train(subInstances);
-            } else {
-                Double existingClassValue = subInstancesClassValueMap.get(attrValue);
+        if (isSignificant) {
 
-                ID3TreeLeaf leafNode = new ID3TreeLeaf(this);
-                leafNode.setAttribute(attribute);
+            // We have a chosen an attribute type and sorted the instances by the possible attribute values
+            // We have discovered if all the class values for a given attribute value match
+            // We are now ready to either grow the tree (because class values in a specific group do not match)
+            // Or add a leaf node with a specific attribute value and a specific class value
+            for (Double attrValue : subInstancesMap.keySet()) {
 
-                leafNode.setClassValueForAttributeValue(attrValue, existingClassValue);
-                this.setChildForAttributeValue(attrValue, leafNode);
+                Instances subInstances = subInstancesMap.get(attrValue);
+                Boolean shouldGrowTree = subInstancesShouldGrowMap.get(attrValue);
+
+                if (shouldGrowTree != null && shouldGrowTree == true) {
+                    subInstances.deleteAttributeAt(attributeIndex);
+                    ID3TreeNode childNode = new ID3TreeNode(this);
+                    this.setChildForAttributeValue(attrValue, childNode);
+                    childNode.train(subInstances);
+                } else {
+                    Double existingClassValue = subInstancesClassValueMap.get(attrValue);
+
+                    ID3TreeLeaf leafNode = new ID3TreeLeaf(this);
+                    leafNode.setAttribute(attribute);
+
+                    leafNode.setClassValueForAttributeValue(attrValue, existingClassValue);
+                    this.setChildForAttributeValue(attrValue, leafNode);
+                }
             }
+        } else {
+            // Make this node into a leaf and collapse the classValue into one
+        }
+
+
+    }
+
+    private Boolean isBranchStatisticallySignificant(Instances instances, Attribute attribute, Map<Double, Instances> subInstancesMap) {
+
+//        Start off with entire table
+//        choose an attribute attr1
+//        get number of positives and negatives, total outcome for table -> totalPos, totalNeg, total
+//        collect sum of loop -> sumChi
+//        loop on each possible attr1Value -> attrValue
+//          find number of positives and negatives for attrValue and total outcomes -> attrValuePos, attrValueNeg attrValueTotal
+//          find expected positives for attrValue -> round(attrValueTotal * (totalPos/total)) -> expectedPos
+//          find expected negatives for attrValue -> attrValueTotal - expectedPos -> expectedNeg
+//          sumChi += ((attrValuePos-expectedPos)^2/expectedPos) + ((attrValueNeg-expectedNeg)^2/expectedNeg)
+
+        // {classValue1 -> count, classValue2 -> count}
+        Integer totalCount = instances.size();
+        Map<Double, Integer> totalNumOfEachOutcome = new HashMap<>();
+        countNumOutcomes(instances, totalNumOfEachOutcome);
+
+        Map<Double, Map<Double, Integer>> numOfEachOutcome = new HashMap<>();
+        for (Double attrValue: subInstancesMap.keySet()) {
+            Instances subInstances = subInstancesMap.get(attrValue);
+            Map<Double, Integer> counts = numOfEachOutcome.get(attrValue);
+            if (counts == null) {
+                counts = new HashMap<>();
+                numOfEachOutcome.put(attrValue,counts);
+            }
+
+            countNumOutcomes(subInstances,counts);
+        }
+
+        Double subChiSquared = 0.0;
+        for (Double attrValue: numOfEachOutcome.keySet()) {
+            Map<Double, Integer> counts = numOfEachOutcome.get(attrValue);
+            Integer actualAttrValueCount = 0;
+            for (Double classValue: counts.keySet()) {
+                actualAttrValueCount += counts.get(classValue);
+            }
+
+            for (Double classValue: counts.keySet()) {
+                Integer totalCountForClassValue = totalNumOfEachOutcome.get(classValue);
+                if (totalCountForClassValue > 0) {
+                    Double expectedAttrValueCountForClassValue = actualAttrValueCount.doubleValue() * (totalCountForClassValue.doubleValue() / totalCount.doubleValue());
+                    Integer actualAttrValueCountForClassValue = counts.get(classValue);
+                    subChiSquared += (Math.pow(actualAttrValueCountForClassValue - expectedAttrValueCountForClassValue, 2)/expectedAttrValueCountForClassValue);
+                }
+            }
+
+        }
+
+        CriticalValuesTable table = new CriticalValuesTable();
+        Double chiSquaredValue = table.getChiSquaredValue(attribute.numValues(), 0);
+
+        return subChiSquared > chiSquaredValue;
+    }
+
+    private void countNumOutcomes(Instances instances, Map<Double, Integer> totalNumOfEachOutcome) {
+        for (int i = 0; i < instances.size(); i++) {
+            Instance instance = instances.get(i);
+            Double classValue = instance.classValue();
+            Integer numOutcome = totalNumOfEachOutcome.get(classValue);
+            if (numOutcome == null) {
+                numOutcome = 0;
+            }
+            totalNumOfEachOutcome.put(classValue, ++numOutcome);
         }
     }
 
