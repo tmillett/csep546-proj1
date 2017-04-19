@@ -33,9 +33,9 @@ public class ID3DecisionTree {
         }
     }
 
-    public void evaluate() {
+    public void evaluate(Integer confidenceLevel) {
 
-        ID3TreeNode tree = new ID3TreeNode(null);
+        ID3TreeNode tree = new ID3TreeNode(null, confidenceLevel);
         tree.train(this.trainingData);
         System.out.println(this.trainingData.attribute(this.trainingData.classIndex()));
         tree.print();

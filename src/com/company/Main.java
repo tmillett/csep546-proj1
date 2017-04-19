@@ -28,7 +28,7 @@ public class Main {
 
 
         ID3DecisionTree tree = new ID3DecisionTree(trainingDataPath, validationDataPath);
-        tree.evaluate();
+        tree.evaluate(2);
 
 
     }

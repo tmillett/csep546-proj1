@@ -17,13 +17,17 @@ import java.util.Map;
 public class ID3TreeNode {
 
     private ID3TreeNode parent;
+    private Integer confidenceLevel;
     protected Attribute attribute;
     private Map<Double, ID3TreeNode> children;
     private Map<Double, Map<String, AttrInfo>> highestAttributeValueCounts;
+    private Double terminatedClassValue;
 
-    public ID3TreeNode(ID3TreeNode parent) {
+    public ID3TreeNode(ID3TreeNode parent, Integer confidenceLevel) {
         this.parent = parent;
+        this.confidenceLevel = confidenceLevel;
         this.children = new HashMap<>();
+        this.terminatedClassValue = null;
     }
 
     protected Map<Double, Map<String, AttrInfo>> findHighestAttributeValueCounts(Instances data) {
@@ -301,13 +305,13 @@ public class ID3TreeNode {
 
                 if (shouldGrowTree != null && shouldGrowTree == true) {
                     subInstances.deleteAttributeAt(attributeIndex);
-                    ID3TreeNode childNode = new ID3TreeNode(this);
+                    ID3TreeNode childNode = new ID3TreeNode(this, this.confidenceLevel);
                     this.setChildForAttributeValue(attrValue, childNode);
                     childNode.train(subInstances);
                 } else {
                     Double existingClassValue = subInstancesClassValueMap.get(attrValue);
 
-                    ID3TreeLeaf leafNode = new ID3TreeLeaf(this);
+                    ID3TreeLeaf leafNode = new ID3TreeLeaf(this, this.confidenceLevel);
                     leafNode.setAttribute(this.attribute);
 
                     leafNode.setClassValueForAttributeValue(attrValue, existingClassValue);
@@ -327,17 +331,15 @@ public class ID3TreeNode {
                 }
             }
 
-            ID3TreeLeaf leafNode = new ID3TreeLeaf(this);
-            leafNode.setAttribute(this.attribute);
-
-            leafNode.setClassValueForAttributeValue(0.0, highestClassValue);
-            this.setChildForAttributeValue(0.0, leafNode);
+            this.terminatedClassValue = highestClassValue;
         }
-
-
     }
 
     private Boolean isBranchStatisticallySignificant(Instances instances, Attribute attribute, Map<Double, Instances> subInstancesMap) {
+
+        if (this.confidenceLevel == 2) {
+            return true;
+        }
 
 //        Start off with entire table
 //        choose an attribute attr1
@@ -388,7 +390,7 @@ public class ID3TreeNode {
         CriticalValuesTable table = new CriticalValuesTable();
         Double chiSquaredValue = table.getChiSquaredValue(attribute.numValues(), 0);
 
-        return subChiSquared > chiSquaredValue;
+        return subChiSquared < chiSquaredValue;
     }
 
     private void countNumOutcomes(Instances instances, Map<Double, Integer> totalNumOfEachOutcome) {
@@ -428,6 +430,10 @@ public class ID3TreeNode {
 
     public Double evaluateInstance(Instance instance) {
 
+        if (this.terminatedClassValue != null) {
+            return this.terminatedClassValue;
+        }
+
         // Make sure the attributes match
         String name = this.attribute.name();
         int index = 0;
@@ -456,8 +462,8 @@ class ID3TreeLeaf extends ID3TreeNode {
 
     private Double attributeValue;
     private Double classValueForAttributeValue;
-    public ID3TreeLeaf(ID3TreeNode parent) {
-        super(parent);
+    public ID3TreeLeaf(ID3TreeNode parent, Integer confidenceLevel) {
+        super(parent, confidenceLevel);
     }
 
     public void setClassValueForAttributeValue(Double attrValue, Double classValueForAttributeValue) {
