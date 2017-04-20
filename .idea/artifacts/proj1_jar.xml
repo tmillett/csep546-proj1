@@ -1,0 +1,9 @@
+<component name="ArtifactManager">
+  <artifact type="jar" name="proj1:jar">
+    <output-path>$PROJECT_DIR$/out/artifacts/proj1_jar</output-path>
+    <root id="archive" name="proj1.jar">
+      <element id="module-output" name="proj1" />
+      <element id="extracted-dir" path="$PROJECT_DIR$/../_proj1/weka-3-8-1/weka.jar" path-in-jar="/" />
+    </root>
+  </artifact>
+</component>
