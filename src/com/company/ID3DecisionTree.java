@@ -17,7 +17,6 @@ public class ID3DecisionTree {
 
     public ID3DecisionTree(String trainingDataPath, String validationDataPath) {
 
-
         if (validationDataPath != null) {
             this.trainingData = getInstances(trainingDataPath);
             this.validationData = getInstances(validationDataPath);
@@ -52,10 +51,7 @@ public class ID3DecisionTree {
             }
         }
         double percent = (double)numMatches / (double)this.validationData.size();
-        System.out.println(percent);
-
-
-
+        System.out.println("Accuracy: " + percent);
     }
 
     private Instances getInstances(String path) {
