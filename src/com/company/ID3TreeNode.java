@@ -213,8 +213,15 @@ public class ID3TreeNode {
 //        return instance.isMissing(j) || attr.value(attrValue.intValue()).equals("NULL") || Double.isNaN(attrValue.doubleValue());
 //    }
 
-   private boolean isMissing(Instance instance, int j, Attribute attr, Double attrValue) {
-        return instance.isMissing(j) || Double.isNaN(attrValue.doubleValue());
+//    private boolean isMissing(Instance instance, int j, Attribute attr, Double attrValue) {
+//        return instance.isMissing(j) || Double.isNaN(attrValue.doubleValue());
+//    }
+
+    private boolean isMissing(Instance instance, int j, Attribute attr, Double attrValue) {
+        if (instance.isMissing(j)) {
+            System.out.print("");
+        }
+        return false;
     }
 
     private AttrInfo useBackupAttrInfo(Attribute attr) {
@@ -236,7 +243,7 @@ public class ID3TreeNode {
 
     public void train(Instances data) {
 
-        this.highestAttributeValueCounts = this.findHighestAttributeValueCounts(data);
+        //this.highestAttributeValueCounts = this.findHighestAttributeValueCounts(data);
 
 
         // Find the attribute to split on to figure out the most information gain
@@ -458,12 +465,7 @@ public class ID3TreeNode {
         Double attributeValue = instance.value(index);
         ID3TreeNode node = this.children.get(attributeValue);
         if (node == null) {
-            AttrInfo attrInfo = useBackupAttrInfo(this.attribute);
-            if (attrInfo == null) {
-                System.out.println("uh oh");
-            }
-            attributeValue = attrInfo.getValue();
-            node = this.children.get(attributeValue);
+            return 1.0;
         }
         return node.evaluateInstance(instance);
     }
