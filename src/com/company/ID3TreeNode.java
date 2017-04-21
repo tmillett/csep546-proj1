@@ -148,7 +148,7 @@ public class ID3TreeNode {
 
     private Attribute calculateGain(double entropy, Map<Attribute, GainInfo> instanceRowsByClass) {
         Attribute attributeWithHighestGain = null;
-        double highestGain = Double.MIN_VALUE;
+        double highestGain = -1.0;
         for (Attribute attr : instanceRowsByClass.keySet()) {
             double currentGain = instanceRowsByClass.get(attr).gain(entropy);
 
@@ -437,13 +437,24 @@ public class ID3TreeNode {
     }
 
     public void printThis(String prefix, boolean isTail) {
+        String toPrint = prefix + (isTail ? "└── " : "├── ");
         if (this.parent != null) {
             String valString = this.parent.attribute.value(this.parentAttrValue.intValue());
-            System.out.println(prefix + (isTail ? "└── " : "├── ") + valString + " ~> " + attribute.name());
-        } else {
-
-            System.out.println(prefix + (isTail ? "└── " : "├── ") + attribute.name());
+            toPrint += valString + " ~> ";
         }
+
+        if (this.attribute != null) {
+            toPrint += attribute.name();
+        }
+        else {
+            toPrint += "??";
+        }
+
+        if (this.terminatedClassValue != null) {
+            toPrint += " --> " + this.terminatedClassValue;
+        }
+
+        System.out.println(toPrint);
     }
 
     public Double evaluateInstance(Instance instance) {
@@ -485,8 +496,13 @@ class ID3TreeLeaf extends ID3TreeNode {
     }
 
     public void printThis(String prefix, boolean isTail) {
-        String valString = this.attribute.value(this.attributeValue.intValue());
-        System.out.println(prefix + (isTail ? "└── " : "├── ") + valString + " ~> " + this.classValueForAttributeValue);
+        String valString;
+        if (this.attributeValue.equals(Double.NaN)) {
+            valString = "?";
+        } else {
+            valString = this.attribute.value(this.attributeValue.intValue());
+        }
+        System.out.println(prefix + (isTail ? "└── " : "├── ") + valString + " >> " + this.classValueForAttributeValue);
     }
 
     public Double evaluateInstance(Instance instance) {
