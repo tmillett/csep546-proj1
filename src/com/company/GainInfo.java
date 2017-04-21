@@ -79,7 +79,11 @@ public class GainInfo {
             int count = classCount.get(i);
             if (count != attrCount && count > 0) {
                 double percentage = (double) count / (double) attrCount;
-                entropy -= percentage * (Math.log10(percentage) / Math.log10(2));
+                double loggedPercent = Math.log(percentage);
+                double loggedBase2 = Math.log(2);
+                double convertedPercentage = loggedPercent / loggedBase2;
+
+                entropy -= percentage * convertedPercentage;
             }
         }
 

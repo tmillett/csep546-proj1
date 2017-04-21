@@ -14,6 +14,8 @@ public class Main {
                 validationDataPath = args[1];
                 if (args.length > 2) {
                     confidenceLevel = Integer.parseInt(args[2]);
+                } else {
+                    confidenceLevel = 2;
                 }
             }
 
@@ -38,7 +40,4 @@ public class Main {
         ID3DecisionTree tree = new ID3DecisionTree(trainingDataPath, validationDataPath);
         tree.evaluate(confidenceLevel);
     }
-
-
-
 }

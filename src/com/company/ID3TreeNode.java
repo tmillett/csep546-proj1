@@ -22,6 +22,7 @@ public class ID3TreeNode {
     private Map<Double, ID3TreeNode> children;
     private Map<Double, Map<String, AttrInfo>> highestAttributeValueCounts;
     private Double terminatedClassValue;
+    private Double parentAttrValue;
 
     public ID3TreeNode(ID3TreeNode parent, Integer confidenceLevel) {
         this.parent = parent;
@@ -150,12 +151,14 @@ public class ID3TreeNode {
         double highestGain = Double.MIN_VALUE;
         for (Attribute attr : instanceRowsByClass.keySet()) {
             double currentGain = instanceRowsByClass.get(attr).gain(entropy);
+
             if (currentGain > highestGain) {
                 attributeWithHighestGain = attr;
                 highestGain = currentGain;
-            }
 
+            }
         }
+
         return attributeWithHighestGain;
     }
 
@@ -413,6 +416,8 @@ public class ID3TreeNode {
         printThis(prefix, isTail);
         List<ID3TreeNode> children = new ArrayList<>();
         for (Double attrValue : this.children.keySet()) {
+            ID3TreeNode n = this.children.get(attrValue);
+            n.parentAttrValue = attrValue;
             children.add(this.children.get(attrValue));
         }
         for (int i = 0; i < children.size() - 1; i++) {
@@ -425,7 +430,13 @@ public class ID3TreeNode {
     }
 
     public void printThis(String prefix, boolean isTail) {
-        System.out.println(prefix + (isTail ? "└── " : "├── ") + attribute);
+        if (this.parent != null) {
+            String valString = this.parent.attribute.value(this.parentAttrValue.intValue());
+            System.out.println(prefix + (isTail ? "└── " : "├── ") + valString + " ~> " + attribute.name());
+        } else {
+
+            System.out.println(prefix + (isTail ? "└── " : "├── ") + attribute.name());
+        }
     }
 
     public Double evaluateInstance(Instance instance) {
