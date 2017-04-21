@@ -472,7 +472,8 @@ class ID3TreeLeaf extends ID3TreeNode {
     }
 
     public void printThis(String prefix, boolean isTail) {
-        System.out.println(prefix + (isTail ? "└── " : "├── ") + this.attributeValue + " ~> " + this.classValueForAttributeValue);
+        String valString = this.attribute.value(this.attributeValue.intValue());
+        System.out.println(prefix + (isTail ? "└── " : "├── ") + valString + " ~> " + this.classValueForAttributeValue);
     }
 
     public Double evaluateInstance(Instance instance) {

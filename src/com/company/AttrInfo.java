@@ -39,7 +39,10 @@ public class AttrInfo {
     }
 
     public String toString() {
-        return this.attribute + " " + this.value + " " + this.count;
+
+        String valString = this.attribute.value(this.value.intValue());
+
+        return this.attribute.name() + " " + valString + " " + this.count;
     }
 
 }

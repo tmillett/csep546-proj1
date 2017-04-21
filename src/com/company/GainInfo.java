@@ -60,7 +60,7 @@ public class GainInfo {
             Integer attrCount = this.attributeInstanceCount.get(new Double(attrValue));
 
             double prefix = (double)attrCount / (double)this.totalCount;
-            gain += prefix * this.getEntropyForAttributeInstance((double)attrValue);
+            gain += prefix * this.getEntropyForAttributeInstance(attrValue);
         }
 
         return tableEntropy - gain;
