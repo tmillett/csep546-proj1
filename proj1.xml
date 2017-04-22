@@ -198,7 +198,7 @@
     <mkdir dir="${artifact.temp.output.proj1:jar}"/>
     <jar destfile="${temp.jar.path.proj1.jar}" duplicate="preserve" filesetmanifest="mergewithoutmain">
       <zipfileset dir="${proj1.output.dir}"/>
-      <zipfileset src="${basedir}/libs/weka.jar"/>
+      <zipfileset src="${basedir}/lib/weka.jar"/>
     </jar>
     <copy file="${temp.jar.path.proj1.jar}" tofile="${artifact.temp.output.proj1:jar}/proj1.jar"/>
   </target>
