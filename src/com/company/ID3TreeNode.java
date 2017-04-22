@@ -38,6 +38,11 @@ public class ID3TreeNode {
         this.children.put(attributeValue, node);
     }
 
+    /**
+     * Find the best attribute to choose to split subInstances on
+     * @param data
+     * @return attribute - the best attribute
+     */
     private Attribute findBestAttribute(Instances data) {
         // C_i = percent of ith class value to total number of all classes
         // Calculate the entropy: E(S) = Sum(-p(C_i)log_2(C_i))
@@ -66,6 +71,13 @@ public class ID3TreeNode {
         return entropy;
     }
 
+    /**
+     * Take the helper data structure and go through all the attributes in the List of Instances
+     * to find the attribute that provides the highest information gain
+     * @param entropy
+     * @param instanceRowsByClass
+     * @return
+     */
     private Attribute calculateGain(double entropy, Map<Attribute, GainInfo> instanceRowsByClass) {
         Attribute attributeWithHighestGain = null;
         double highestGain = -1.0;
@@ -82,6 +94,12 @@ public class ID3TreeNode {
         return attributeWithHighestGain;
     }
 
+    /**
+     * Create a helper data structure that makes it easier
+     * to calculate the gain for each attribute in the List of Instances
+     * @param data
+     * @return map containing helper data
+     */
     private Map<Attribute, GainInfo> getAttributeGainInfoMap(Instances data) {
         /*
             Calculate the gain for each attribute
@@ -117,12 +135,23 @@ public class ID3TreeNode {
         return instanceRowsByClass;
     }
 
+    /**
+     * Populate this node with an attribute type and then decide to
+     * create child nodes for each of the observed values for that attribute
+     * or create leaf nodes for the observed values for that attribute.
+     * Child nodes will recursively train on the sub-list of Instances data
+     * @param data - A list of records to train on
+     */
     public void train(Instances data) {
 
-        // Find the attribute to split on to figure out the most information gain
+        // Find the attribute to split based on the attribute type that gives the highest info gain
         Attribute root = this.findBestAttribute(data);
 
-        // Find the index of the attribute class
+        if (root == null) {
+            System.out.print(root);
+        }
+
+        // Find the index of the attribute class in the instances
         this.setAttribute(root);
         int attributeIndex = -1;
         for (int i = 0; i < data.numAttributes(); i++) {
@@ -150,7 +179,6 @@ public class ID3TreeNode {
             Double attrValue = instance.value(root);
             double classValue = instance.classValue();
 
-
             Instances subInstances = subInstancesMap.get(attrValue);
             if (subInstances == null) {
                 subInstances = new Instances(data, data.size());
@@ -171,7 +199,9 @@ public class ID3TreeNode {
 
         Boolean isSignificant = isBranchStatisticallySignificant(data, root, subInstancesMap);
 
-        if (isSignificant) {
+        // Also check to see if we have any attributes left to split on.
+        // Must be more than two because one of them is the class value
+        if (isSignificant && data.numAttributes() > 2) {
 
             // We have a chosen an attribute type and sorted the instances by the possible attribute values
             // We have discovered if all the class values for a given attribute value match
@@ -183,11 +213,14 @@ public class ID3TreeNode {
                 Boolean shouldGrowTree = subInstancesShouldGrowMap.get(attrValue);
 
                 if (shouldGrowTree != null && shouldGrowTree == true) {
+                    // Class values to not match, grow the tree
                     subInstances.deleteAttributeAt(attributeIndex);
+
                     ID3TreeNode childNode = new ID3TreeNode(this, this.confidenceLevel);
                     this.setChildForAttributeValue(attrValue, childNode);
                     childNode.train(subInstances);
                 } else {
+                    // Class values match, add a leaf node with the class value
                     Double existingClassValue = subInstancesClassValueMap.get(attrValue);
 
                     ID3TreeLeaf leafNode = new ID3TreeLeaf(this, this.confidenceLevel);
@@ -198,6 +231,10 @@ public class ID3TreeNode {
                 }
             }
         } else {
+
+            // We have determined that splitting the instances further will provide little
+            // additional insight. Find the class value that occurs the most and choose that
+            // to terminate this branch
             Map<Double, Integer> counts = new HashMap<>();
             countNumOutcomes(data, counts);
             Integer highestCount = Integer.MIN_VALUE;
@@ -214,6 +251,15 @@ public class ID3TreeNode {
         }
     }
 
+    /**
+     * Calculate the chi-squared value for the given attribute and List of Instances
+     * If the confidenceLevel variable is set to 2 then we skip the test
+     *
+     * @param instances
+     * @param attribute - The attribute to test
+     * @param subInstancesMap
+     * @return
+     */
     private Boolean isBranchStatisticallySignificant(Instances instances, Attribute attribute, Map<Double, Instances> subInstancesMap) {
 
         if (this.confidenceLevel == 2) {
@@ -247,7 +293,7 @@ public class ID3TreeNode {
             countNumOutcomes(subInstances,counts);
         }
 
-        Double subChiSquared = 0.0;
+        Double calculatedChiSquared = 0.0;
         for (Double attrValue: numOfEachOutcome.keySet()) {
             Map<Double, Integer> counts = numOfEachOutcome.get(attrValue);
             Integer actualAttrValueCount = 0;
@@ -260,7 +306,7 @@ public class ID3TreeNode {
                 if (totalCountForClassValue > 0) {
                     Double expectedAttrValueCountForClassValue = actualAttrValueCount.doubleValue() * (totalCountForClassValue.doubleValue() / totalCount.doubleValue());
                     Integer actualAttrValueCountForClassValue = counts.get(classValue);
-                    subChiSquared += (Math.pow(actualAttrValueCountForClassValue - expectedAttrValueCountForClassValue, 2)/expectedAttrValueCountForClassValue);
+                    calculatedChiSquared += (Math.pow(actualAttrValueCountForClassValue - expectedAttrValueCountForClassValue, 2)/expectedAttrValueCountForClassValue);
                 }
             }
 
@@ -269,9 +315,14 @@ public class ID3TreeNode {
         CriticalValuesTable table = new CriticalValuesTable();
         Double chiSquaredValue = table.getChiSquaredValue(attribute.numValues(), this.confidenceLevel);
 
-        return subChiSquared > chiSquaredValue;
+        return calculatedChiSquared > chiSquaredValue;
     }
 
+    /**
+     * Counts the number of times each class value is found in the given Instances list
+     * @param instances
+     * @param totalNumOfEachOutcome - This Map will contain the counts
+     */
     private void countNumOutcomes(Instances instances, Map<Double, Integer> totalNumOfEachOutcome) {
         for (int i = 0; i < instances.size(); i++) {
             Instance instance = instances.get(i);
@@ -283,6 +334,8 @@ public class ID3TreeNode {
             totalNumOfEachOutcome.put(classValue, ++numOutcome);
         }
     }
+
+    // ******** Printing methods ********
 
     public void print() {
         print("", true);
@@ -326,6 +379,13 @@ public class ID3TreeNode {
         System.out.println(toPrint);
     }
 
+    /**
+     * Take the given instances and guide it through the ID3Tree.
+     * Calculate its expected class value
+     * @param instance
+     * @return expectedClassValue
+     */
+
     public Double evaluateInstance(Instance instance) {
 
         if (this.terminatedClassValue != null) {
@@ -351,6 +411,9 @@ public class ID3TreeNode {
     }
 }
 
+/**
+ * This class is created to better print what a leaf node should look like
+ */
 class ID3TreeLeaf extends ID3TreeNode {
 
     private Double attributeValue;
