@@ -28,27 +28,27 @@ public class GainInfo {
         this.attribute = attr;
         this.classAttribute = classAttribute;
 
-        this.classInstanceCount = new HashMap<Double, List<Integer>>();
-        this.attributeInstanceCount = new HashMap<Double, Integer>();
+        this.classInstanceCount = new HashMap<>();
+        this.attributeInstanceCount = new HashMap<>();
         this.totalCount = 0;
     }
 
     public void addInstance(double attrValue, double classValue){
-        List<Integer> classCount = this.classInstanceCount.get(new Double(attrValue));
+        List<Integer> classCount = this.classInstanceCount.get(attrValue);
         if (classCount == null) {
             classCount = new ArrayList<>();
             for (int k = 0; k < this.classAttribute.numValues(); k++) {
-                classCount.add(new Integer(0));
+                classCount.add(0);
             }
-            this.classInstanceCount.put(new Double(attrValue), classCount);
+            this.classInstanceCount.put(attrValue, classCount);
         }
 
         Integer countForSpecificClass = classCount.get((int)classValue);
         classCount.set((int)classValue,countForSpecificClass + 1);
 
-        Integer countForAttributeInstance = this.attributeInstanceCount.get(new Double(attrValue));
-        if (countForAttributeInstance == null) countForAttributeInstance = new Integer(0);
-        this.attributeInstanceCount.put(new Double(attrValue), countForAttributeInstance + 1);
+        Integer countForAttributeInstance = this.attributeInstanceCount.get(attrValue);
+        if (countForAttributeInstance == null) countForAttributeInstance = 0;
+        this.attributeInstanceCount.put(attrValue, countForAttributeInstance + 1);
 
         this.totalCount++;
     }
@@ -57,7 +57,7 @@ public class GainInfo {
 
         double gain = 0.0;
         for (Double attrValue : this.classInstanceCount.keySet()) {
-            Integer attrCount = this.attributeInstanceCount.get(new Double(attrValue));
+            Integer attrCount = this.attributeInstanceCount.get(attrValue);
 
             double prefix = (double)attrCount / (double)this.totalCount;
             gain += prefix * this.getEntropyForAttributeInstance(attrValue);
@@ -67,12 +67,12 @@ public class GainInfo {
     }
 
     private double getEntropyForAttributeInstance(double attrValue) {
-        List<Integer> classCount = this.classInstanceCount.get(new Double(attrValue));
+        List<Integer> classCount = this.classInstanceCount.get(attrValue);
         if (classCount == null) {
             return 0;
         }
 
-        Integer attrCount = this.attributeInstanceCount.get(new Double((attrValue)));
+        Integer attrCount = this.attributeInstanceCount.get(attrValue);
 
         double entropy = 0.0;
         for (int i = 0; i < classCount.size(); i++) {
@@ -93,8 +93,6 @@ public class GainInfo {
     public String toString() {
         return "" + this.classInstanceCount + " " + this.attributeInstanceCount;
     }
-
-
 
 }
 
