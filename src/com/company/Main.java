@@ -15,7 +15,7 @@ public class Main {
                 if (args.length > 2) {
                     confidenceLevel = Integer.parseInt(args[2]);
                 } else {
-                    confidenceLevel = 2;
+                    confidenceLevel = 1;
                 }
             }
 

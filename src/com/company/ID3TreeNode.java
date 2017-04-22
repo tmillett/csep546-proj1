@@ -22,6 +22,7 @@ public class ID3TreeNode {
     private Map<Double, ID3TreeNode> children;
     private Double terminatedClassValue;
     private Double parentAttrValue;
+    public int count;
 
     public ID3TreeNode(ID3TreeNode parent, Integer confidenceLevel) {
         this.parent = parent;
@@ -144,12 +145,11 @@ public class ID3TreeNode {
      */
     public void train(Instances data) {
 
+        this.count = data.numInstances();
+
         // Find the attribute to split based on the attribute type that gives the highest info gain
         Attribute root = this.findBestAttribute(data);
 
-        if (root == null) {
-            System.out.print(root);
-        }
 
         // Find the index of the attribute class in the instances
         this.setAttribute(root);
@@ -225,6 +225,7 @@ public class ID3TreeNode {
 
                     ID3TreeLeaf leafNode = new ID3TreeLeaf(this, this.confidenceLevel);
                     leafNode.setAttribute(this.attribute);
+                    leafNode.count = subInstances.numInstances();
 
                     leafNode.setClassValueForAttributeValue(attrValue, existingClassValue);
                     this.setChildForAttributeValue(attrValue, leafNode);
@@ -248,6 +249,7 @@ public class ID3TreeNode {
             }
 
             this.terminatedClassValue = highestClassValue;
+            this.count = data.numInstances();
         }
     }
 
@@ -361,8 +363,14 @@ public class ID3TreeNode {
     public void printThis(String prefix, boolean isTail) {
         String toPrint = prefix + (isTail ? "└── " : "├── ");
         if (this.parent != null) {
+            ID3TreeNode parentNode = this.parent;
+            int depth = 0;
+            while (parentNode != null) {
+                depth++;
+                parentNode = parentNode.parent;
+            }
             String valString = this.parent.attribute.value(this.parentAttrValue.intValue());
-            toPrint += valString + " ~> ";
+            toPrint += valString + " ~(" + depth + "-" + this.count + ")> ";
         }
 
         if (this.attribute != null) {
@@ -373,7 +381,7 @@ public class ID3TreeNode {
         }
 
         if (this.terminatedClassValue != null) {
-            toPrint += " --> " + this.terminatedClassValue;
+            toPrint += " --(" + this.count +")> " + this.terminatedClassValue;
         }
 
         System.out.println(toPrint);
@@ -434,7 +442,7 @@ class ID3TreeLeaf extends ID3TreeNode {
         } else {
             valString = this.attribute.value(this.attributeValue.intValue());
         }
-        System.out.println(prefix + (isTail ? "└── " : "├── ") + valString + " >> " + this.classValueForAttributeValue);
+        System.out.println(prefix + (isTail ? "└── " : "├── ") + valString + " >(" + this.count + ")> " + this.classValueForAttributeValue);
     }
 
     public Double evaluateInstance(Instance instance) {
